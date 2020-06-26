@@ -2,8 +2,13 @@
 #include "ArduinoJson.h"
 #include "DHT.h"
 #include "ESP8266WiFi.h"
+#include "NTPClient.h"
+#include "WiFiUdp.h"
 
 DHT dht = DHT(2, DHT11, 6);
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 
 const char* ssid     = "Nokia 6.1 Plus";
 const char* password = "";
@@ -57,6 +62,8 @@ void setup()
   Serial.println(WiFi.localIP()); 
 
   client.setServer(mqtt_server, 1883);
+  
+  timeClient.begin();
 }
 
 void loop()
@@ -69,22 +76,26 @@ void loop()
   
   float humidity = dht.readHumidity(); /* Get humidity value */
   float temperature = dht.readTemperature(); /* Get temperature value */
+  timeClient.update();
 
-  StaticJsonDocument<200> doc;
+  char output[300];
+
+  StaticJsonDocument<300> doc;
   doc["sensor"] = "DHT11";
   doc["humidity"] = humidity;
   doc["temp"] = temperature;
+  doc["timestamp"] = timeClient.getEpochTime();
 
-  char* data;
+  serializeJson(doc, output);
+  Serial.println(output);
 
-//  serializeJson(doc, data);
-
-  client.publish("nodemcu_data_queue",  "somedata");
+  client.publish("nodemcu_data_queue",  output);
   
   Serial.print("\t");
   Serial.print(humidity, 1);
   Serial.print("\t\t");
   Serial.print(temperature, 1);
+  Serial.print("\n");
   
   delay(5000);
 }
