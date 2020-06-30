@@ -17,8 +17,16 @@ const char* mqtt_server = "lion.rmq.cloudamqp.com";
 const char* mqtt_user = "ylhnwvqf:ylhnwvqf";
 const char* mqtt_pass= "U0gpsudyXQBu8LiwAIOc7um4Av9ajPBd";
 
+const char* clientSecret = "$2b$10$do257mWB3kjvlV1zB2duTOvaawQgP3ZinIvseZjXrlJdozsWupVra";
+
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+void callback(char* topic, byte* payload, unsigned int length)
+{
+    Serial.println("Message Recieved!");
+    Serial.println(topic);
+}
 
 void reconnect() 
 {
@@ -27,7 +35,9 @@ void reconnect()
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("test_exchange", mqtt_user, mqtt_pass)) {
+    if (client.connect(clientSecret, mqtt_user, mqtt_pass)) {
+      client.subscribe("");
+      client.setCallback(callback);
       Serial.println("connected");
     } else {
       Serial.print("failed, rc=");
@@ -68,7 +78,7 @@ void setup()
 
 void loop()
 {
-  
+  client.loop();
   if (!client.connected()) 
   {
     reconnect();
@@ -85,17 +95,18 @@ void loop()
   doc["humidity"] = humidity;
   doc["temp"] = temperature;
   doc["timestamp"] = timeClient.getEpochTime();
+  doc["clientSecret"] = clientSecret;
 
   serializeJson(doc, output);
   Serial.println(output);
 
   client.publish("nodemcu_data_queue",  output);
   
-  Serial.print("\t");
-  Serial.print(humidity, 1);
-  Serial.print("\t\t");
-  Serial.print(temperature, 1);
-  Serial.print("\n");
+//  Serial.print("\t");
+//  Serial.print(humidity, 1);
+//  Serial.print("\t\t");
+//  Serial.print(temperature, 1);
+//  Serial.print("\n");
   
-  delay(5000);
+  delay(10000);
 }
